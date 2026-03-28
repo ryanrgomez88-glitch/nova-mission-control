@@ -1,40 +1,34 @@
 import { NextResponse } from 'next/server'
-import { invokeGatewayTool } from '@/lib/openclaw'
+import { supabaseQuery } from '@/lib/supabase'
+
+export const revalidate = 60
 
 export async function GET() {
   try {
-    const result = await invokeGatewayTool('exec', {
-      command: 'ls -t /Users/rynojetsolutions/.openclaw/workspace/memory/overnight-*.md 2>/dev/null | head -10',
-    }) as { output?: string; stdout?: string }
-
-    const output = result?.output || result?.stdout || ''
-    const files = output.trim().split('\n').filter(Boolean)
+    const rows = await supabaseQuery<{
+      id: string
+      report_date: string
+      title: string | null
+      content: string
+    }>('overnight_reports', {
+      select: 'id,report_date,title,content',
+      order: 'report_date.desc',
+      limit: '5',
+    })
 
     const today = new Date().toISOString().split('T')[0]
 
-    const reports = await Promise.all(
-      files.slice(0, 5).map(async (file) => {
-        try {
-          const content = await invokeGatewayTool('exec', {
-            command: `head -30 "${file}" 2>/dev/null`,
-          }) as { output?: string; stdout?: string }
-          const text = content?.output || content?.stdout || ''
-          const dateMatch = file.match(/overnight-(\d{4}-\d{2}-\d{2})/)
-          const date = dateMatch?.[1] || 'Unknown'
-          return {
-            filename: file.split('/').pop() || file,
-            date,
-            preview: text.trim().slice(0, 200),
-            isToday: date === today,
-          }
-        } catch {
-          return null
-        }
-      })
-    )
+    const reports = rows.map(r => ({
+      id: r.id,
+      date: r.report_date,
+      title: r.title || `Overnight Report — ${r.report_date}`,
+      preview: r.content.trim().slice(0, 300),
+      isToday: r.report_date === today,
+    }))
 
-    return NextResponse.json({ reports: reports.filter(Boolean) })
-  } catch {
-    return NextResponse.json({ reports: [], error: 'Workspace not accessible' })
+    return NextResponse.json({ reports })
+  } catch (err) {
+    console.error('overnight-reports error:', err)
+    return NextResponse.json({ reports: [], error: 'Could not load reports' })
   }
 }

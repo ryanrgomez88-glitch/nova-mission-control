@@ -6,8 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Moon } from 'lucide-react'
 
 interface Report {
-  filename: string
+  id: string
   date: string
+  title: string
   preview: string
   isToday: boolean
 }
@@ -55,7 +56,7 @@ export default function OvernightReports() {
           <div className="space-y-2">
             {reports.map((r, i) => (
               <motion.div
-                key={r.filename}
+                key={r.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.1 }}
