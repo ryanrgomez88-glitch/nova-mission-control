@@ -23,6 +23,7 @@ export async function GET() {
       date: r.report_date,
       title: r.title || `Overnight Report — ${r.report_date}`,
       preview: r.content.trim().slice(0, 300),
+      content: r.content.trim(),   // full text for expand
       isToday: r.report_date === today,
     }))
 

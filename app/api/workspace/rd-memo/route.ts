@@ -31,7 +31,7 @@ export async function GET() {
         title: r.title,
         date: r.memo_date,
         daysAgo,
-        content: r.content.slice(0, 800),
+        content: r.content,   // full text — component handles truncation + expand
         analysts: r.analysts || [],
       },
     })

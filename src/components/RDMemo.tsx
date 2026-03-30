@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FlaskConical } from 'lucide-react'
+import { FlaskConical, ChevronDown, ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 interface Memo {
@@ -22,9 +22,12 @@ const analystColors: Record<string, 'blue' | 'green' | 'purple' | 'yellow' | 're
   Nova: 'red',
 }
 
+const PREVIEW_LENGTH = 400
+
 export default function RDMemo() {
   const [memo, setMemo] = useState<Memo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     fetch('/api/workspace/rd-memo')
@@ -33,6 +36,8 @@ export default function RDMemo() {
       .catch(() => setMemo(null))
       .finally(() => setLoading(false))
   }, [])
+
+  const needsTruncation = memo && memo.content.length > PREVIEW_LENGTH
 
   return (
     <Card className="h-full">
@@ -60,14 +65,52 @@ export default function RDMemo() {
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="text-sm font-medium text-white mb-2">{memo.title}</div>
-            <div className="text-xs text-slate-400 leading-relaxed mb-4 whitespace-pre-wrap line-clamp-6">{memo.content}</div>
-            {memo.analysts.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {memo.analysts.map(a => (
-                  <Badge key={a} variant={analystColors[a] || 'default'}>{a}</Badge>
-                ))}
-              </div>
-            )}
+
+            <AnimatePresence initial={false}>
+              {expanded ? (
+                <motion.div
+                  key="full"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-xs text-slate-400 leading-relaxed mb-3 whitespace-pre-wrap overflow-y-auto max-h-96"
+                >
+                  {memo.content}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-xs text-slate-400 leading-relaxed mb-3 whitespace-pre-wrap"
+                >
+                  {memo.content.slice(0, PREVIEW_LENGTH)}{needsTruncation ? '…' : ''}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              {memo.analysts.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {memo.analysts.map(a => (
+                    <Badge key={a} variant={analystColors[a] || 'default'}>{a}</Badge>
+                  ))}
+                </div>
+              )}
+              {needsTruncation && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors ml-auto"
+                >
+                  {expanded ? (
+                    <><ChevronUp size={12} /> Show less</>
+                  ) : (
+                    <><ChevronDown size={12} /> Read full memo</>
+                  )}
+                </button>
+              )}
+            </div>
           </motion.div>
         )}
       </CardContent>
