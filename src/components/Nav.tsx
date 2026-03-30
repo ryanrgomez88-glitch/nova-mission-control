@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Plane, Calendar, Search, Activity, BookOpen } from 'lucide-react'
+import { Plane, Calendar, Search, Activity, BookOpen, Briefcase } from 'lucide-react'
 
 export default function Nav() {
   const pathname = usePathname()
@@ -35,6 +35,7 @@ export default function Nav() {
 
   const links = [
     { href: '/', label: 'Home', icon: Activity },
+    { href: '/operations', label: 'Operations', icon: Briefcase },
     { href: '/feed', label: 'Feed', icon: Activity },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/search', label: 'Search', icon: Search },
