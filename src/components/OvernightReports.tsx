@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,18 +14,30 @@ interface Report {
   isToday: boolean
 }
 
+const POLL_INTERVAL = 30_000
+
 export default function OvernightReports() {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/workspace/overnight-reports')
-      .then(r => r.json())
-      .then(d => setReports(d.reports || []))
-      .catch(() => setReports([]))
-      .finally(() => setLoading(false))
+  const fetchReports = useCallback(async () => {
+    try {
+      const r = await fetch('/api/workspace/overnight-reports')
+      const d = await r.json()
+      setReports(d.reports || [])
+    } catch {
+      setReports([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchReports()
+    const t = setInterval(fetchReports, POLL_INTERVAL)
+    return () => clearInterval(t)
+  }, [fetchReports])
 
   return (
     <Card className="h-full">

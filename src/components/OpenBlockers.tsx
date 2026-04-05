@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,22 +19,32 @@ const statusConfig = {
   done: { color: '#34D399', label: '🟢 Done', dot: '#34D399' },
 }
 
+const POLL_INTERVAL = 30_000
+
 export default function OpenBlockers() {
   const [blockers, setBlockers] = useState<Blocker[]>([])
   const [loading, setLoading] = useState(true)
   const [updated, setUpdated] = useState<string | null>(null)
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null)
 
-  useEffect(() => {
-    fetch('/api/workspace/blockers')
-      .then(r => r.json())
-      .then(d => {
-        setBlockers(d.blockers || [])
-        setUpdated(d.updated || null)
-      })
-      .catch(() => setBlockers([]))
-      .finally(() => setLoading(false))
+  const fetchBlockers = useCallback(async () => {
+    try {
+      const r = await fetch('/api/workspace/blockers')
+      const d = await r.json()
+      setBlockers(d.blockers || [])
+      setUpdated(d.updated || null)
+    } catch {
+      setBlockers([])
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchBlockers()
+    const t = setInterval(fetchBlockers, POLL_INTERVAL)
+    return () => clearInterval(t)
+  }, [fetchBlockers])
 
   return (
     <Card className="h-full">

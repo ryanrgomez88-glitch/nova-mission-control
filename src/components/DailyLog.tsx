@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,18 +11,32 @@ interface DayLog {
   fullContent?: string
 }
 
+const POLL_INTERVAL = 30_000
+
 export default function DailyLog() {
   const [logs, setLogs] = useState<DayLog[]>([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      const r = await fetch('/api/workspace/daily-logs')
+      const d = await r.json()
+      setLogs(d.logs || [])
+      setLastUpdated(new Date())
+    } catch {
+      setLogs([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    fetch('/api/workspace/daily-logs')
-      .then(r => r.json())
-      .then(d => setLogs(d.logs || []))
-      .catch(() => setLogs([]))
-      .finally(() => setLoading(false))
-  }, [])
+    fetchLogs()
+    const t = setInterval(fetchLogs, POLL_INTERVAL)
+    return () => clearInterval(t)
+  }, [fetchLogs])
 
   return (
     <Card className="h-full">
@@ -30,6 +44,11 @@ export default function DailyLog() {
         <div className="flex items-center gap-2">
           <BookOpen size={16} style={{ color: '#FCD34D' }} />
           <CardTitle>Daily Conversation Log</CardTitle>
+          {lastUpdated && (
+            <span className="text-xs text-slate-600 ml-auto">
+              {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
       </CardHeader>
       <CardContent>

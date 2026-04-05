@@ -18,6 +18,8 @@ export default function N45BPStats() {
   const [stats, setStats] = useState<AircraftStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [secondsAgo, setSecondsAgo] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -26,6 +28,8 @@ export default function N45BPStats() {
         if (!res.ok) throw new Error('Failed')
         const data = await res.json()
         setStats(data)
+        setLastUpdated(new Date())
+        setSecondsAgo(0)
       } catch {
         setError(true)
       } finally {
@@ -33,9 +37,18 @@ export default function N45BPStats() {
       }
     }
     load()
-    const t = setInterval(load, 30000)
+    const t = setInterval(load, 60000)
     return () => clearInterval(t)
   }, [])
+
+  // Tick seconds-ago counter
+  useEffect(() => {
+    if (!lastUpdated) return
+    const tick = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [lastUpdated])
 
   const formatCurrency = (n?: number) => {
     if (n == null) return '$—'
@@ -55,7 +68,14 @@ export default function N45BPStats() {
         <div className="flex items-center gap-2">
           <Plane size={16} style={{ color: '#60A5FA' }} />
           <CardTitle>N45BP Live Stats</CardTitle>
-          <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse ml-auto" style={{ boxShadow: '0 0 6px #34D399' }} />
+          <div className="flex items-center gap-1.5 ml-auto">
+            {lastUpdated && (
+              <span className="text-xs text-slate-600">
+                Updated {secondsAgo < 5 ? 'just now' : secondsAgo < 60 ? `${secondsAgo}s ago` : `${Math.floor(secondsAgo / 60)}m ago`}
+              </span>
+            )}
+            <div className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" style={{ boxShadow: '0 0 6px #34D399' }} />
+          </div>
         </div>
       </CardHeader>
       <CardContent>
